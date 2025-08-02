@@ -1,0 +1,25 @@
+version: '3'
+services:
+  backend:
+    image: backend:latest
+    container_name: backend
+    env_file:
+      - ./backend/backend.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: unless-stopped
+    env_file:
+      - ./backend/backend.env
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
+
