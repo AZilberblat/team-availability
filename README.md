@@ -36,5 +36,5 @@ project-root/
 
 3. **Access the application:**
 React frontend: http://localhost:3000
-FastAPI backend (optional): http://localhost:8000
+FastAPI backend: http://localhost:8000
 The frontend will automatically communicate with the backend using the Docker internal network.
