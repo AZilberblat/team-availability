@@ -9,6 +9,8 @@ services:
       - "8000:8000"
     depends_on:
       - mongo
+    networks:
+      - app-network
   mongo:
     image: mongo:6.0
     container_name: mongo
@@ -19,7 +21,18 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+  frontend:
+    image: frontend:latest
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - ./front/frontend.env
+    networks:
+      - app-network
 
 volumes:
   mongo-data:
-
+networks:
+  app-network:
+    driver: bridge

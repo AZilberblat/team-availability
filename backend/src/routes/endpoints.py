@@ -1,14 +1,14 @@
 from typing import List
 
 from fastapi import APIRouter, Depends
-
+from fastapi.security import OAuth2PasswordRequestForm
 from ..core.exceptions import credentials_exception, not_found_exception
 from ..core.security import SecurityService
-from fastapi.security import OAuth2PasswordRequestForm
 
 from ..db.client import MongoDB
 from ..models.Token import Token
 from ..models.status import Status
+from ..models.status_update_request import StatusUpdateRequest
 from ..models.user import User
 
 router = APIRouter()
@@ -27,18 +27,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.get("/users", response_model=List[User])
 async def get_users(current_user: User = Depends(sec.get_current_user)):
+    print(current_user.username)
     docs = await db.find().to_list()
     print(docs)
     return [User(username=user_data["username"], status=Status(user_data["status"])) for user_data in docs]
 
 
-@router.get("/users/{username}/status", response_model=User)
-async def update_user_status(username: str, payload: Status, current_user: User = Depends(sec.get_current_user)):
+@router.patch("/users/{username}/status", response_model=User)
+async def update_user_status(username: str, payload: StatusUpdateRequest,
+                             current_user: User = Depends(sec.get_current_user)):
     results = await db.update_one(
         {"username": username},
-        {"$set": {"status": payload.value}}
+        {"$set": {"status": payload.status.value}}
     )
 
     if results.matched_count == 0:
         raise not_found_exception
-    return User(username=username, status=payload)
+    return User(username=username, status=payload.status)

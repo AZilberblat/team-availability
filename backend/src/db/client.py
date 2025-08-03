@@ -2,6 +2,7 @@ import os
 
 from motor import motor_asyncio
 
+
 class MongoDB:
 
     def __init__(self):

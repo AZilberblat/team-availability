@@ -11,12 +11,13 @@ from ..db.client import MongoDB
 from ..models.user import User
 from ..models.user_in_db import UserInDB
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
+
 
 class SecurityService:
 
     def __init__(self):
         self.__pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        # self.__oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
         self.db = MongoDB()
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
@@ -29,7 +30,7 @@ class SecurityService:
     def create_access_token(sub: str, expire_delta: Optional[timedelta] = None) -> str:
         to_encode = {"sub": sub}
         expire = datetime.utcnow() + (
-                    expire_delta or timedelta(minutes=float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"])))
+                expire_delta or timedelta(minutes=float(os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"])))
         to_encode.update({"exp": expire})
         return jwt.encode(to_encode, os.environ["SECRET_KEY"], algorithm=os.environ["ALGORITHM"])
 
@@ -46,13 +47,22 @@ class SecurityService:
             raise credentials_exception
         return user
 
-    async def get_current_user(self, token: Annotated[str, OAuth2PasswordBearer(tokenUrl="/token")]) -> User:
+    @staticmethod
+    async def verify_token(token: str) -> str:
         try:
             payload = jwt.decode(token, os.environ["SECRET_KEY"], os.environ["ALGORITHM"])
+            print("testing payload")
+            print(payload)
             username: str = payload.get("sub")
             if username is None:
                 raise credentials_exception
-            user = await self.get_user(username)
-            return User(username=user.username, status=user.status)
+            return username
         except JWTError:
             raise credentials_exception
+
+    async def get_current_user(self, token: Annotated[str, Depends(oauth2_scheme)]):
+        username = await self.verify_token(token=token)
+        user = await self.get_user(username)
+        if user is None:
+            raise credentials_exception
+        return User(username=user.username, status=user.status)
